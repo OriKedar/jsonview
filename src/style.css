@@ -284,6 +284,93 @@ summary:hover > .copy-btn {
   color: var(--str);
 }
 
+.epoch-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+  position: relative;
+}
+
+.clock-btn {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  padding: 0 2px;
+  opacity: 0;
+  vertical-align: middle;
+}
+
+.leaf:hover .clock-btn {
+  opacity: 1;
+}
+
+.clock-btn:hover {
+  color: var(--accent);
+}
+
+.date-preview {
+  font: 12px var(--mono);
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  cursor: pointer;
+}
+
+.date-preview.hidden {
+  display: none;
+}
+
+.tz-popup {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px;
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+}
+
+.tz-popup.hidden {
+  display: none;
+}
+
+.tz-copy {
+  font: inherit;
+  color: var(--text-h);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+.tz-copy:hover {
+  border-color: var(--accent-border);
+}
+
+.tz-select {
+  font: inherit;
+  color: var(--text-h);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 4px;
+  max-width: 220px;
+}
+
 .children {
   margin-left: 18px;
   border-left: 1px dashed var(--border);

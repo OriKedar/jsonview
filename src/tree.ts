@@ -10,6 +10,148 @@ function formatPrimitive(value: unknown): string {
   return String(value);
 }
 
+const EPOCH_SECONDS_MIN = 1e9; // 2001-09-09
+const EPOCH_SECONDS_MAX = 1e10; // 2286-11-20
+const EPOCH_MS_MIN = EPOCH_SECONDS_MIN * 1000;
+const EPOCH_MS_MAX = EPOCH_SECONDS_MAX * 1000;
+
+function epochToMillis(value: unknown): number | null {
+  let num: number;
+  if (typeof value === "number" && Number.isInteger(value)) {
+    num = value;
+  } else if (typeof value === "string" && /^\d+$/.test(value)) {
+    num = Number(value);
+    if (!Number.isSafeInteger(num)) return null;
+  } else {
+    return null;
+  }
+  if (num >= EPOCH_MS_MIN && num < EPOCH_MS_MAX) return num;
+  if (num >= EPOCH_SECONDS_MIN && num < EPOCH_SECONDS_MAX) return num * 1000;
+  return null;
+}
+
+const DEFAULT_TIMEZONES = [
+  "UTC",
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "Europe/London",
+  "Europe/Paris",
+  "Europe/Berlin",
+  "Europe/Moscow",
+  "Asia/Jerusalem",
+  "Asia/Dubai",
+  "Asia/Kolkata",
+  "Asia/Shanghai",
+  "Asia/Tokyo",
+  "Australia/Sydney",
+];
+
+function getTimezoneList(): string[] {
+  const supportedValuesOf = (Intl as unknown as { supportedValuesOf?: (key: string) => string[] })
+    .supportedValuesOf;
+  if (typeof supportedValuesOf === "function") {
+    try {
+      return supportedValuesOf("timeZone");
+    } catch {
+      // fall through to default list
+    }
+  }
+  return DEFAULT_TIMEZONES;
+}
+
+function formatInZone(ms: number, tz: string): string {
+  const formatted = new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "medium",
+    timeZone: tz,
+  }).format(new Date(ms));
+  return `${formatted} (${tz})`;
+}
+
+let activePopup: HTMLElement | null = null;
+document.addEventListener("click", () => {
+  activePopup?.classList.add("hidden");
+  activePopup = null;
+});
+
+function makeClockButton(ms: number): HTMLElement {
+  const wrap = document.createElement("span");
+  wrap.className = "epoch-wrap";
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "clock-btn";
+  btn.title = "Convert timestamp to date";
+  btn.innerHTML =
+    '<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.3"/><path d="M8 4.6V8.2L10.4 9.8"/></svg>';
+
+  let tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  const preview = document.createElement("button");
+  preview.type = "button";
+  preview.className = "date-preview hidden";
+  preview.title = "Click to change timezone";
+  preview.textContent = formatInZone(ms, tz);
+
+  const popup = document.createElement("div");
+  popup.className = "tz-popup hidden";
+
+  const copyBtn = document.createElement("button");
+  copyBtn.type = "button";
+  copyBtn.className = "tz-copy";
+  copyBtn.textContent = "Copy";
+  copyBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(preview.textContent ?? "").then(() => {
+      copyBtn.textContent = "Copied";
+      setTimeout(() => (copyBtn.textContent = "Copy"), 1000);
+    });
+  });
+
+  const select = document.createElement("select");
+  select.className = "tz-select";
+  for (const zone of getTimezoneList()) {
+    const opt = document.createElement("option");
+    opt.value = zone;
+    opt.textContent = zone;
+    if (zone === tz) opt.selected = true;
+    select.appendChild(opt);
+  }
+  select.addEventListener("click", (e) => e.stopPropagation());
+  select.addEventListener("change", () => {
+    tz = select.value;
+    preview.textContent = formatInZone(ms, tz);
+  });
+
+  popup.appendChild(copyBtn);
+  popup.appendChild(select);
+
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    preview.classList.toggle("hidden");
+    if (preview.classList.contains("hidden")) {
+      popup.classList.add("hidden");
+      if (activePopup === popup) activePopup = null;
+    }
+  });
+
+  preview.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (activePopup && activePopup !== popup) activePopup.classList.add("hidden");
+    popup.classList.toggle("hidden");
+    activePopup = popup.classList.contains("hidden") ? null : popup;
+  });
+
+  wrap.appendChild(btn);
+  wrap.appendChild(preview);
+  wrap.appendChild(popup);
+  return wrap;
+}
+
 function makeKeySpan(key: string): HTMLSpanElement {
   const span = document.createElement("span");
   span.className = "key";
@@ -79,6 +221,8 @@ function renderNode(key: string | null, value: unknown): HTMLElement {
   val.className = `val type-${type}`;
   val.textContent = formatPrimitive(value);
   leaf.appendChild(val);
+  const ms = epochToMillis(value);
+  if (ms !== null) leaf.appendChild(makeClockButton(ms));
   leaf.appendChild(makeCopyButton(value));
   return leaf;
 }
@@ -105,9 +249,14 @@ export function filterTree(container: HTMLElement, query: string): void {
   }
 
   nodes.forEach((n) => {
-    const ownText = n.classList.contains("leaf")
-      ? n.textContent?.toLowerCase() ?? ""
-      : n.querySelector(":scope > summary")?.textContent?.toLowerCase() ?? "";
+    let ownText: string;
+    if (n.classList.contains("leaf")) {
+      const keyText = n.querySelector(":scope > .key")?.textContent ?? "";
+      const valText = n.querySelector(":scope > .val")?.textContent ?? "";
+      ownText = (keyText + valText).toLowerCase();
+    } else {
+      ownText = n.querySelector(":scope > summary")?.textContent?.toLowerCase() ?? "";
+    }
     n.classList.toggle("match", ownText.includes(q));
   });
 
