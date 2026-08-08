@@ -45,3 +45,7 @@ export function coordFromEntries(entries: readonly (readonly [string, unknown])[
   if (!inRange(lat, -90, 90) || !inRange(lon, -180, 180)) return null;
   return { lat, lon };
 }
+
+export function coordFromPair(a: number, b: number): Coord | null {
+  return orderPair(a, b);
+}

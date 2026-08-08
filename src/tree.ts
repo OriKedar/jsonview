@@ -1,4 +1,12 @@
-import { coordFromString, coordFromArray, coordFromEntries, type Coord } from "./geo";
+import {
+  coordFromString,
+  coordFromArray,
+  coordFromEntries,
+  coordFromPair,
+  type Coord,
+} from "./geo";
+
+const GEO_KEY_HINT = /lat|lon|lng|geo|location|coord|position|place/i;
 
 function valueType(value: unknown): string {
   if (value === null) return "null";
@@ -73,9 +81,17 @@ function formatInZone(ms: number, tz: string): string {
 }
 
 let activePopup: HTMLElement | null = null;
+let pickedButtons: HTMLButtonElement[] = [];
+
+function clearPickedHighlight(): void {
+  pickedButtons.forEach((b) => b.classList.remove("picked"));
+  pickedButtons = [];
+}
+
 document.addEventListener("click", () => {
   activePopup?.classList.add("hidden");
   activePopup = null;
+  clearPickedHighlight();
 });
 
 function makeClockButton(ms: number): HTMLElement {
@@ -154,21 +170,22 @@ function makeClockButton(ms: number): HTMLElement {
   return wrap;
 }
 
-function makePinButton(coord: Coord): HTMLElement {
-  const wrap = document.createElement("span");
-  wrap.className = "geo-wrap";
-
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.className = "pin-btn";
-  btn.title = "View on map";
-  btn.innerHTML =
-    '<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 15S3 9.5 3 6a5 5 0 0 1 10 0c0 3.5-5 9-5 9Z"/><circle cx="8" cy="6" r="1.7"/></svg>';
-
+function buildGeoPopup(coord: Coord): HTMLDivElement {
   const popup = document.createElement("div");
   popup.className = "geo-popup hidden";
+  popup.addEventListener("click", (e) => e.stopPropagation());
 
   const coordText = `${coord.lat.toFixed(6)}, ${coord.lon.toFixed(6)}`;
+
+  const mapFrame = document.createElement("iframe");
+  mapFrame.className = "geo-map";
+  mapFrame.title = "Map preview";
+  const d = 0.01;
+  const bbox = `${coord.lon - d},${coord.lat - d},${coord.lon + d},${coord.lat + d}`;
+  mapFrame.src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&marker=${coord.lat},${coord.lon}&layer=mapnik`;
+
+  const row = document.createElement("div");
+  row.className = "geo-row";
 
   const label = document.createElement("span");
   label.className = "geo-coord";
@@ -192,7 +209,6 @@ function makePinButton(coord: Coord): HTMLElement {
   osmLink.rel = "noopener noreferrer";
   osmLink.className = "geo-link";
   osmLink.textContent = "OpenStreetMap ↗";
-  osmLink.addEventListener("click", (e) => e.stopPropagation());
 
   const gmapLink = document.createElement("a");
   gmapLink.href = `https://www.google.com/maps?q=${coord.lat},${coord.lon}`;
@@ -200,23 +216,106 @@ function makePinButton(coord: Coord): HTMLElement {
   gmapLink.rel = "noopener noreferrer";
   gmapLink.className = "geo-link";
   gmapLink.textContent = "Google Maps ↗";
-  gmapLink.addEventListener("click", (e) => e.stopPropagation());
 
-  popup.appendChild(label);
-  popup.appendChild(copyBtn);
-  popup.appendChild(osmLink);
-  popup.appendChild(gmapLink);
+  row.appendChild(label);
+  row.appendChild(copyBtn);
+  row.appendChild(osmLink);
+  row.appendChild(gmapLink);
+
+  popup.appendChild(mapFrame);
+  popup.appendChild(row);
+  return popup;
+}
+
+function togglePopup(popup: HTMLElement): void {
+  if (activePopup && activePopup !== popup) activePopup.classList.add("hidden");
+  popup.classList.toggle("hidden");
+  activePopup = popup.classList.contains("hidden") ? null : popup;
+}
+
+function makePinButton(coord: Coord): HTMLElement {
+  const wrap = document.createElement("span");
+  wrap.className = "geo-wrap";
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "pin-btn";
+  btn.title = "View on map";
+  btn.innerHTML =
+    '<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 15S3 9.5 3 6a5 5 0 0 1 10 0c0 3.5-5 9-5 9Z"/><circle cx="8" cy="6" r="1.7"/></svg>';
+
+  const popup = buildGeoPopup(coord);
 
   btn.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (activePopup && activePopup !== popup) activePopup.classList.add("hidden");
-    popup.classList.toggle("hidden");
-    activePopup = popup.classList.contains("hidden") ? null : popup;
+    togglePopup(popup);
   });
 
   wrap.appendChild(btn);
   wrap.appendChild(popup);
+  return wrap;
+}
+
+let pendingPick: { value: number; btn: HTMLButtonElement } | null = null;
+
+function clearPendingPick(): void {
+  pendingPick?.btn.classList.remove("selected");
+  pendingPick = null;
+}
+
+function makePickButton(value: number): HTMLElement {
+  const wrap = document.createElement("span");
+  wrap.className = "geo-wrap";
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "pick-btn";
+  btn.title = "Pick as map coordinate (select two numbers)";
+  btn.innerHTML =
+    '<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="5.5"/><path d="M8 2v3M8 11v3M2 8h3M11 8h3"/></svg>';
+
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (pendingPick && pendingPick.btn === btn) {
+      clearPendingPick();
+      return;
+    }
+    if (pickedButtons.includes(btn)) {
+      // re-clicking a button from the currently shown pair cancels it
+      activePopup?.classList.add("hidden");
+      activePopup = null;
+      clearPickedHighlight();
+      return;
+    }
+    if (!pendingPick) {
+      clearPickedHighlight();
+      pendingPick = { value, btn };
+      btn.classList.add("selected");
+      return;
+    }
+
+    const firstBtn = pendingPick.btn;
+    const coord = coordFromPair(pendingPick.value, value);
+    clearPendingPick();
+    if (!coord) {
+      btn.classList.add("invalid-flash");
+      setTimeout(() => btn.classList.remove("invalid-flash"), 600);
+      return;
+    }
+
+    firstBtn.classList.add("picked");
+    btn.classList.add("picked");
+    pickedButtons = [firstBtn, btn];
+
+    const popup = buildGeoPopup(coord);
+    wrap.appendChild(popup);
+    togglePopup(popup);
+  });
+
+  wrap.appendChild(btn);
   return wrap;
 }
 
@@ -296,11 +395,15 @@ function renderNode(key: string | null, value: unknown): HTMLElement {
   if (ms !== null) leaf.appendChild(makeClockButton(ms));
   const coord = type === "string" ? coordFromString(value as string) : null;
   if (coord) leaf.appendChild(makePinButton(coord));
+  if (type === "number" && key !== null && GEO_KEY_HINT.test(key)) {
+    leaf.appendChild(makePickButton(value as number));
+  }
   leaf.appendChild(makeCopyButton(value));
   return leaf;
 }
 
 export function renderTree(container: HTMLElement, data: unknown): void {
+  clearPendingPick();
   container.replaceChildren(renderNode(null, data));
 }
 
