@@ -73,6 +73,15 @@ h1 {
   font-weight: 600;
   color: var(--text-h);
   margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+h1 .logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 
 .toolbar {
