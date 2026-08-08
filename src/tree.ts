@@ -1,3 +1,5 @@
+import { coordFromString, coordFromArray, coordFromEntries, type Coord } from "./geo";
+
 function valueType(value: unknown): string {
   if (value === null) return "null";
   if (Array.isArray(value)) return "array";
@@ -152,6 +154,72 @@ function makeClockButton(ms: number): HTMLElement {
   return wrap;
 }
 
+function makePinButton(coord: Coord): HTMLElement {
+  const wrap = document.createElement("span");
+  wrap.className = "geo-wrap";
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "pin-btn";
+  btn.title = "View on map";
+  btn.innerHTML =
+    '<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 15S3 9.5 3 6a5 5 0 0 1 10 0c0 3.5-5 9-5 9Z"/><circle cx="8" cy="6" r="1.7"/></svg>';
+
+  const popup = document.createElement("div");
+  popup.className = "geo-popup hidden";
+
+  const coordText = `${coord.lat.toFixed(6)}, ${coord.lon.toFixed(6)}`;
+
+  const label = document.createElement("span");
+  label.className = "geo-coord";
+  label.textContent = coordText;
+
+  const copyBtn = document.createElement("button");
+  copyBtn.type = "button";
+  copyBtn.className = "tz-copy";
+  copyBtn.textContent = "Copy";
+  copyBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(coordText).then(() => {
+      copyBtn.textContent = "Copied";
+      setTimeout(() => (copyBtn.textContent = "Copy"), 1000);
+    });
+  });
+
+  const osmLink = document.createElement("a");
+  osmLink.href = `https://www.openstreetmap.org/?mlat=${coord.lat}&mlon=${coord.lon}#map=15/${coord.lat}/${coord.lon}`;
+  osmLink.target = "_blank";
+  osmLink.rel = "noopener noreferrer";
+  osmLink.className = "geo-link";
+  osmLink.textContent = "OpenStreetMap ↗";
+  osmLink.addEventListener("click", (e) => e.stopPropagation());
+
+  const gmapLink = document.createElement("a");
+  gmapLink.href = `https://www.google.com/maps?q=${coord.lat},${coord.lon}`;
+  gmapLink.target = "_blank";
+  gmapLink.rel = "noopener noreferrer";
+  gmapLink.className = "geo-link";
+  gmapLink.textContent = "Google Maps ↗";
+  gmapLink.addEventListener("click", (e) => e.stopPropagation());
+
+  popup.appendChild(label);
+  popup.appendChild(copyBtn);
+  popup.appendChild(osmLink);
+  popup.appendChild(gmapLink);
+
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (activePopup && activePopup !== popup) activePopup.classList.add("hidden");
+    popup.classList.toggle("hidden");
+    activePopup = popup.classList.contains("hidden") ? null : popup;
+  });
+
+  wrap.appendChild(btn);
+  wrap.appendChild(popup);
+  return wrap;
+}
+
 function makeKeySpan(key: string): HTMLSpanElement {
   const span = document.createElement("span");
   span.className = "key";
@@ -201,6 +269,9 @@ function renderNode(key: string | null, value: unknown): HTMLElement {
     badge.textContent =
       type === "array" ? `Array[${entries.length}]` : `Object{${entries.length}}`;
     summary.appendChild(badge);
+    const coord =
+      type === "array" ? coordFromArray(value as unknown[]) : coordFromEntries(entries);
+    if (coord) summary.appendChild(makePinButton(coord));
     summary.appendChild(makeCopyButton(value));
     details.appendChild(summary);
 
@@ -223,6 +294,8 @@ function renderNode(key: string | null, value: unknown): HTMLElement {
   leaf.appendChild(val);
   const ms = epochToMillis(value);
   if (ms !== null) leaf.appendChild(makeClockButton(ms));
+  const coord = type === "string" ? coordFromString(value as string) : null;
+  if (coord) leaf.appendChild(makePinButton(coord));
   leaf.appendChild(makeCopyButton(value));
   return leaf;
 }
