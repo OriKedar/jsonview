@@ -17,6 +17,9 @@ const clearBtn = document.querySelector<HTMLButtonElement>("#clear-btn")!;
 const searchInput = document.querySelector<HTMLInputElement>("#search-input")!;
 const expandAllBtn = document.querySelector<HTMLButtonElement>("#expand-all-btn")!;
 const collapseAllBtn = document.querySelector<HTMLButtonElement>("#collapse-all-btn")!;
+const divider = document.querySelector<HTMLDivElement>("#divider")!;
+const inputPane = document.querySelector<HTMLElement>("#input-pane")!;
+const mainEl = document.querySelector<HTMLElement>("main")!;
 
 const STORAGE_KEY = "jsonview:last-input";
 const SAMPLE = JSON.stringify(
@@ -180,6 +183,45 @@ fixBtn.addEventListener("click", () => {
 
 expandAllBtn.addEventListener("click", () => setAllExpanded(treeOutput, true));
 collapseAllBtn.addEventListener("click", () => setAllExpanded(treeOutput, false));
+
+const SPLIT_KEY = "jsonview:split";
+const MIN_RATIO = 0.15;
+const MAX_RATIO = 0.85;
+
+function applySplit(ratio: number): void {
+  inputPane.style.flex = `0 0 ${ratio * 100}%`;
+}
+
+function setSplit(ratio: number): void {
+  const clamped = Math.min(MAX_RATIO, Math.max(MIN_RATIO, ratio));
+  applySplit(clamped);
+  localStorage.setItem(SPLIT_KEY, String(clamped));
+}
+
+divider.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  divider.setPointerCapture(e.pointerId);
+  divider.classList.add("dragging");
+  document.body.style.userSelect = "none";
+
+  const onMove = (ev: PointerEvent) => {
+    const rect = mainEl.getBoundingClientRect();
+    setSplit((ev.clientX - rect.left) / rect.width);
+  };
+  const onUp = () => {
+    divider.classList.remove("dragging");
+    document.body.style.userSelect = "";
+    divider.removeEventListener("pointermove", onMove);
+    divider.removeEventListener("pointerup", onUp);
+  };
+  divider.addEventListener("pointermove", onMove);
+  divider.addEventListener("pointerup", onUp);
+});
+
+divider.addEventListener("dblclick", () => setSplit(0.5));
+
+const savedSplit = localStorage.getItem(SPLIT_KEY);
+applySplit(savedSplit ? Number(savedSplit) : 0.5);
 
 const saved = localStorage.getItem(STORAGE_KEY);
 loadText(saved ?? SAMPLE);
