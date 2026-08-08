@@ -7,7 +7,45 @@
     <title>jsonview</title>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <header>
+        <h1>jsonview</h1>
+        <div class="toolbar">
+          <label class="btn">
+            Open file
+            <input type="file" id="file-input" accept=".json,application/json" hidden />
+          </label>
+          <button id="url-btn" class="btn">Load URL</button>
+          <button id="sample-btn" class="btn">Sample</button>
+          <button id="clear-btn" class="btn">Clear</button>
+          <span class="spacer"></span>
+          <input id="search-input" type="search" placeholder="Search keys/values…" />
+          <button id="expand-all-btn" class="btn" disabled>Expand all</button>
+          <button id="collapse-all-btn" class="btn" disabled>Collapse all</button>
+        </div>
+      </header>
+
+      <main>
+        <section id="input-pane">
+          <div id="error-banner" hidden>
+            <button id="error-message" class="error-link" type="button"></button>
+            <button id="fix-btn" class="btn" type="button">Auto-fix JSON</button>
+          </div>
+          <div id="textarea-wrap">
+            <div id="highlight-layer" aria-hidden="true"></div>
+            <textarea
+              id="json-input"
+              placeholder="Paste JSON here, drop a .json file, or click Open file…"
+              spellcheck="false"
+            ></textarea>
+          </div>
+        </section>
+
+        <section id="output-pane">
+          <div id="tree-output"></div>
+        </section>
+      </main>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
