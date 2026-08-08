@@ -390,8 +390,8 @@ summary:hover > .copy-btn {
   vertical-align: middle;
 }
 
-.node:hover > .pin-btn,
-summary:hover > .pin-btn {
+.node:hover > .geo-wrap > .pin-btn,
+summary:hover > .geo-wrap > .pin-btn {
   opacity: 1;
 }
 
@@ -462,8 +462,8 @@ summary:hover > .pin-btn {
   vertical-align: middle;
 }
 
-.node:hover > .pick-btn,
-summary:hover > .pick-btn {
+.node:hover > .geo-wrap > .pick-btn,
+summary:hover > .geo-wrap > .pick-btn {
   opacity: 1;
 }
 
