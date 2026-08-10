@@ -223,5 +223,28 @@ divider.addEventListener("dblclick", () => setSplit(0.5));
 const savedSplit = localStorage.getItem(SPLIT_KEY);
 applySplit(savedSplit ? Number(savedSplit) : 0.5);
 
+const THEME_KEY = "jsonview:theme";
+const themeToggleBtn = document.querySelector<HTMLButtonElement>("#theme-toggle-btn")!;
+
+function applyTheme(theme: "light" | "dark"): void {
+  document.documentElement.dataset.theme = theme;
+  themeToggleBtn.textContent = theme === "dark" ? "☀️" : "🌙";
+}
+
+const savedTheme = localStorage.getItem(THEME_KEY);
+applyTheme(
+  savedTheme === "light" || savedTheme === "dark"
+    ? savedTheme
+    : window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light",
+);
+
+themeToggleBtn.addEventListener("click", () => {
+  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  applyTheme(next);
+  localStorage.setItem(THEME_KEY, next);
+});
+
 const saved = localStorage.getItem(STORAGE_KEY);
 loadText(saved ?? SAMPLE);
