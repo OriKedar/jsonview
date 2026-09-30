@@ -8,13 +8,13 @@ import {
 
 const GEO_KEY_HINT = /lat|lon|lng|geo|location|coord|position|place/i;
 
-function valueType(value: unknown): string {
+export function valueType(value: unknown): string {
   if (value === null) return "null";
   if (Array.isArray(value)) return "array";
   return typeof value;
 }
 
-function formatPrimitive(value: unknown): string {
+export function formatPrimitive(value: unknown): string {
   if (value === null) return "null";
   if (typeof value === "string") return JSON.stringify(value);
   return String(value);
@@ -319,7 +319,7 @@ function makePickButton(value: number): HTMLElement {
   return wrap;
 }
 
-function makeKeySpan(key: string): HTMLSpanElement {
+export function makeKeySpan(key: string): HTMLSpanElement {
   const span = document.createElement("span");
   span.className = "key";
   span.textContent = `"${key}": `;
