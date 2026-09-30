@@ -18,6 +18,11 @@
           <button id="url-btn" class="btn">Load URL</button>
           <button id="sample-btn" class="btn">Sample</button>
           <button id="clear-btn" class="btn">Clear</button>
+          <span class="toolbar-sep"></span>
+          <div class="seg" role="group" aria-label="Mode">
+            <button id="mode-viewer" type="button" aria-pressed="true">Viewer</button>
+            <button id="mode-diff" type="button" aria-pressed="false">Diff</button>
+          </div>
           <span class="spacer"></span>
           <input id="search-input" type="search" placeholder="Search keys/values…" />
           <button id="expand-all-btn" class="btn" disabled>Expand all</button>
@@ -28,23 +33,42 @@
 
       <main>
         <section id="input-pane">
-          <div id="error-banner" hidden>
-            <button id="error-message" class="error-link" type="button"></button>
-            <button id="fix-btn" class="btn" type="button">Auto-fix JSON</button>
-          </div>
-          <div id="textarea-wrap">
-            <div id="highlight-layer" aria-hidden="true"></div>
-            <textarea
-              id="json-input"
-              placeholder="Paste JSON here, drop a .json file, or click Open file…"
-              spellcheck="false"
-            ></textarea>
+          <div id="viewer-editor"></div>
+          <div id="diff-editors" hidden>
+            <div class="diff-col" id="diff-col-a">
+              <div class="editor-head">
+                <span class="slot">A</span>
+                <span class="editor-name" id="name-a">Version A</span>
+                <span class="status-dot" id="dot-a" data-state="empty"></span>
+              </div>
+              <div class="editor-body" id="editor-a"></div>
+            </div>
+            <div class="diff-col" id="diff-col-b">
+              <div class="editor-head">
+                <span class="slot">B</span>
+                <span class="editor-name" id="name-b">Version B</span>
+                <span class="status-dot" id="dot-b" data-state="empty"></span>
+                <button id="swap-btn" class="icon-btn" type="button" title="Swap A and B" aria-label="Swap A and B">
+                  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M3 5h9l-2.5-2.5M13 11H4l2.5 2.5"/></svg>
+                </button>
+              </div>
+              <div class="editor-body" id="editor-b"></div>
+            </div>
           </div>
         </section>
 
         <div id="divider" role="separator" aria-orientation="vertical" aria-label="Resize panes"></div>
 
         <section id="output-pane">
+          <div id="diff-bar" hidden>
+            <span id="diff-total" class="diff-total"></span>
+            <span id="diff-chips" class="diff-chips"></span>
+            <span class="spacer"></span>
+            <label class="only-changes"><input id="only-changes" type="checkbox" /> Only changes</label>
+            <button id="prev-change" class="btn btn-icon" type="button" aria-label="Previous change" disabled>↑</button>
+            <span id="change-pos" class="change-pos"></span>
+            <button id="next-change" class="btn btn-icon" type="button" aria-label="Next change" disabled>↓</button>
+          </div>
           <div id="tree-output"></div>
         </section>
       </main>
