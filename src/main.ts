@@ -2,7 +2,8 @@ import "./style.css";
 import { diff, summarize } from "./diff";
 import { renderDiff } from "./diffView";
 import { createInputPane, type InputPane } from "./inputPane";
-import { renderTree, setAllExpanded, filterTree } from "./tree";
+import { renderTree, setAllExpanded, findInTree, setActiveMatch } from "./tree";
+import { stepIndex } from "./search";
 
 type Mode = "viewer" | "diff";
 
@@ -12,6 +13,9 @@ const urlBtn = document.querySelector<HTMLButtonElement>("#url-btn")!;
 const sampleBtn = document.querySelector<HTMLButtonElement>("#sample-btn")!;
 const clearBtn = document.querySelector<HTMLButtonElement>("#clear-btn")!;
 const searchInput = document.querySelector<HTMLInputElement>("#search-input")!;
+const searchCount = document.querySelector<HTMLSpanElement>("#search-count")!;
+const searchPrevBtn = document.querySelector<HTMLButtonElement>("#search-prev")!;
+const searchNextBtn = document.querySelector<HTMLButtonElement>("#search-next")!;
 const expandAllBtn = document.querySelector<HTMLButtonElement>("#expand-all-btn")!;
 const collapseAllBtn = document.querySelector<HTMLButtonElement>("#collapse-all-btn")!;
 const divider = document.querySelector<HTMLDivElement>("#divider")!;
@@ -192,6 +196,7 @@ function renderDiffMode(): void {
   const a = paneA.state;
   const b = paneB.state;
   searchInput.value = "";
+  resetSearch();
 
   if (a.kind !== "valid" || b.kind !== "valid") {
     const bad = (["a", "b"] as const).filter((s) => slots[s].pane.state.kind === "invalid");
@@ -229,6 +234,7 @@ function renderViewerMode(): void {
     renderTree(treeOutput, state.value);
     setControlsEnabled(true);
     searchInput.value = "";
+    resetSearch();
   } else {
     treeOutput.replaceChildren();
     setControlsEnabled(false);
@@ -347,9 +353,49 @@ swapBtn.addEventListener("click", () => {
   setName("b", nameA);
 });
 
-searchInput.addEventListener("input", () => {
-  filterTree(treeOutput, searchInput.value);
+let searchMatches: HTMLElement[] = [];
+let searchIndex = -1;
+
+function resetSearch(): void {
+  searchMatches = [];
+  searchIndex = -1;
+  updateSearchUi();
+}
+
+function updateSearchUi(): void {
+  const n = searchMatches.length;
+  searchPrevBtn.disabled = n === 0;
+  searchNextBtn.disabled = n === 0;
+  if (searchInput.value.trim() === "") searchCount.textContent = "";
+  else if (n === 0) searchCount.textContent = "0 results";
+  else searchCount.textContent = searchIndex < 0 ? `${n} results` : `${searchIndex + 1} / ${n}`;
+}
+
+function runSearch(): void {
+  searchMatches = findInTree(treeOutput, searchInput.value);
+  searchIndex = -1;
+  setActiveMatch(treeOutput, null);
+  updateSearchUi();
+}
+
+function stepSearch(dir: 1 | -1): void {
+  searchIndex = stepIndex(searchIndex, searchMatches.length, dir);
+  setActiveMatch(treeOutput, searchMatches[searchIndex] ?? null);
+  updateSearchUi();
+}
+
+searchInput.addEventListener("input", runSearch);
+searchInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    stepSearch(e.shiftKey ? -1 : 1);
+  } else if (e.key === "Escape") {
+    searchInput.value = "";
+    runSearch();
+  }
 });
+searchNextBtn.addEventListener("click", () => stepSearch(1));
+searchPrevBtn.addEventListener("click", () => stepSearch(-1));
 
 expandAllBtn.addEventListener("click", () => setAllExpanded(treeOutput, true));
 collapseAllBtn.addEventListener("click", () => setAllExpanded(treeOutput, false));
