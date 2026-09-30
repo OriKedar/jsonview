@@ -24,11 +24,23 @@ const mainEl = document.querySelector<HTMLElement>("main")!;
 const STORAGE_KEY = "jsonview:last-input";
 const SAMPLE = JSON.stringify(
   {
-    name: "jsonview",
-    version: 1,
+    name: "Json Master",
+    author: "oriKedar",
     active: true,
-    tags: ["json", "viewer", "static"],
-    meta: { author: "you", stars: null },
+    tags: ["json", "viewer", "diff"],
+    createdAt: 1755000000,
+    updatedAt: 1790797831000,
+    lastSeen: "1790797831",
+    office: {
+      city: "Tel Aviv",
+      location: "32.0853, 34.7818",
+    },
+    warehouse: {
+      lat: 40.7128,
+      lng: -74.006,
+    },
+    landmark: [48.8566, 2.3522],
+    meta: { license: "MIT", stars: null },
   },
   null,
   2,
@@ -187,6 +199,7 @@ collapseAllBtn.addEventListener("click", () => setAllExpanded(treeOutput, false)
 const SPLIT_KEY = "jsonview:split";
 const MIN_RATIO = 0.15;
 const MAX_RATIO = 0.85;
+const DEFAULT_RATIO = 0.3;
 
 function applySplit(ratio: number): void {
   inputPane.style.flex = `0 0 ${ratio * 100}%`;
@@ -218,10 +231,10 @@ divider.addEventListener("pointerdown", (e) => {
   divider.addEventListener("pointerup", onUp);
 });
 
-divider.addEventListener("dblclick", () => setSplit(0.5));
+divider.addEventListener("dblclick", () => setSplit(DEFAULT_RATIO));
 
 const savedSplit = localStorage.getItem(SPLIT_KEY);
-applySplit(savedSplit ? Number(savedSplit) : 0.5);
+applySplit(savedSplit ? Number(savedSplit) : DEFAULT_RATIO);
 
 const THEME_KEY = "jsonview:theme";
 const themeToggleBtn = document.querySelector<HTMLButtonElement>("#theme-toggle-btn")!;
