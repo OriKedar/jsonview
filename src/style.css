@@ -605,6 +605,19 @@ details:not([open]) > summary::before {
   border-radius: 3px;
 }
 
+.match-active > summary .key,
+.node.leaf.match-active .key {
+  background: var(--accent-border);
+  outline: 2px solid var(--accent);
+}
+
+.search-count {
+  font-size: 12px;
+  min-width: 56px;
+  text-align: right;
+  opacity: 0.7;
+}
+
 /* ---- mode toggle ---- */
 
 .toolbar-sep {

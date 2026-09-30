@@ -413,17 +413,15 @@ export function setAllExpanded(container: HTMLElement, open: boolean): void {
   });
 }
 
-export function filterTree(container: HTMLElement, query: string): void {
+export function findInTree(container: HTMLElement, query: string): HTMLElement[] {
   const q = query.trim().toLowerCase();
   const nodes = container.querySelectorAll<HTMLElement>(".node");
 
-  if (q === "") {
-    nodes.forEach((n) => {
-      n.classList.remove("hidden", "match");
-    });
-    return;
-  }
+  container.querySelectorAll(".match-active").forEach((n) => n.classList.remove("match-active"));
+  nodes.forEach((n) => n.classList.remove("match"));
+  if (q === "") return [];
 
+  const matches: HTMLElement[] = [];
   nodes.forEach((n) => {
     let ownText: string;
     if (n.classList.contains("leaf")) {
@@ -433,13 +431,20 @@ export function filterTree(container: HTMLElement, query: string): void {
     } else {
       ownText = n.querySelector(":scope > summary")?.textContent?.toLowerCase() ?? "";
     }
-    n.classList.toggle("match", ownText.includes(q));
+    if (ownText.includes(q)) {
+      n.classList.add("match");
+      matches.push(n);
+    }
   });
+  return matches;
+}
 
-  nodes.forEach((n) => {
-    const hasMatchDescendant = !!n.querySelector(".match");
-    const show = n.classList.contains("match") || hasMatchDescendant;
-    n.classList.toggle("hidden", !show);
-    if (show && n.tagName === "DETAILS") (n as HTMLDetailsElement).open = true;
-  });
+export function setActiveMatch(container: HTMLElement, match: HTMLElement | null): void {
+  container.querySelectorAll(".match-active").forEach((n) => n.classList.remove("match-active"));
+  if (!match) return;
+  match.classList.add("match-active");
+  for (let p = match.parentElement; p && p !== container; p = p.parentElement) {
+    if (p instanceof HTMLDetailsElement) p.open = true;
+  }
+  match.scrollIntoView({ block: "center", behavior: "smooth" });
 }
