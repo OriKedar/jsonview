@@ -32,14 +32,14 @@ const SAMPLE = JSON.stringify(
     updatedAt: 1790797831000,
     lastSeen: "1790797831",
     office: {
-      city: "Tel Aviv",
-      location: "32.0853, 34.7818",
+      city: "Berlin",
+      location: "52.5200, 13.4050",
     },
-    warehouse: {
-      lat: 40.7128,
-      lng: -74.006,
+    favoritePizza: {
+      name: "Nea Pizza 1889",
+      address: "Zimmerstraße 26, 10969 Berlin",
+      location: "52.5076947, 13.3931087",
     },
-    landmark: [48.8566, 2.3522],
     meta: { license: "MIT", stars: null },
   },
   null,
