@@ -1,8 +1,10 @@
-import { parseJson, repairJson } from "./parser";
+import { repairJson } from "./parser";
+import { parseInput, type DetectedFormat } from "./formats";
+import { formatJavaMap } from "./formats/javaMap";
 
 export type PaneState =
   | { kind: "empty" }
-  | { kind: "valid"; value: unknown }
+  | { kind: "valid"; value: unknown; format: DetectedFormat }
   | { kind: "invalid" };
 
 export interface InputPaneOptions {
@@ -23,6 +25,10 @@ export interface InputPane {
   setText(text: string): void;
   /** Shows a message that does not come from parsing (e.g. a failed URL fetch). */
   showError(message: string): void;
+  /** Re-indents the text in its own format (JSON or Java Map). No-op when invalid. */
+  prettify(): void;
+  /** Rewrites a Java Map as pretty JSON. No-op for anything else. */
+  convertToJson(): void;
 }
 
 const MARKUP = `
@@ -30,6 +36,7 @@ const MARKUP = `
     <button class="error-message error-link" type="button"></button>
     <button class="btn fix-btn" type="button">Auto-fix JSON</button>
   </div>
+  <span class="format-badge" hidden></span>
   <div class="textarea-wrap">
     <div class="highlight-layer" aria-hidden="true"></div>
     <textarea class="json-input" spellcheck="false"></textarea>
@@ -45,11 +52,13 @@ export function createInputPane(parent: HTMLElement, options: InputPaneOptions):
   const banner = root.querySelector<HTMLDivElement>(".error-banner")!;
   const message = root.querySelector<HTMLButtonElement>(".error-message")!;
   const fixBtn = root.querySelector<HTMLButtonElement>(".fix-btn")!;
+  const badge = root.querySelector<HTMLSpanElement>(".format-badge")!;
   const highlightLayer = root.querySelector<HTMLDivElement>(".highlight-layer")!;
   const input = root.querySelector<HTMLTextAreaElement>(".json-input")!;
   input.placeholder = options.placeholder;
 
   let state: PaneState = { kind: "empty" };
+  let format: DetectedFormat = "json";
   let errorIndex: number | undefined;
   let highlightTimer: number | undefined;
 
@@ -86,7 +95,7 @@ export function createInputPane(parent: HTMLElement, options: InputPaneOptions):
     message.textContent =
       line !== undefined && !hasLocation ? `${text} (line ${line}, column ${column})` : text;
     message.disabled = index === undefined;
-    const repaired = repairJson(input.value);
+    const repaired = format === "json" ? repairJson(input.value) : null;
     fixBtn.hidden = repaired === null || repaired === input.value;
     state = { kind: "invalid" };
 
@@ -102,7 +111,8 @@ export function createInputPane(parent: HTMLElement, options: InputPaneOptions):
 
   function process(): void {
     const text = input.value;
-    const result = parseJson(text);
+    const result = parseInput(text);
+    format = result.format;
     if (!result.ok) {
       if (text.trim() !== "") {
         showBanner(result.message, result.line, result.column, result.index);
@@ -115,8 +125,10 @@ export function createInputPane(parent: HTMLElement, options: InputPaneOptions):
     } else {
       banner.hidden = true;
       errorIndex = undefined;
-      state = { kind: "valid", value: result.value };
+      state = { kind: "valid", value: result.value, format };
     }
+    badge.hidden = state.kind !== "valid";
+    badge.textContent = format === "javaMap" ? "Java Map" : "JSON";
     updateHighlightLayer();
   }
 
@@ -183,7 +195,20 @@ export function createInputPane(parent: HTMLElement, options: InputPaneOptions):
     setText,
     showError(text) {
       showBanner(text);
+      badge.hidden = true;
       options.onChange();
+    },
+    prettify() {
+      if (state.kind !== "valid") return;
+      setText(
+        state.format === "javaMap"
+          ? formatJavaMap(state.value)
+          : JSON.stringify(state.value, null, 2),
+      );
+    },
+    convertToJson() {
+      if (state.kind !== "valid" || state.format !== "javaMap") return;
+      setText(JSON.stringify(state.value, null, 2));
     },
   };
 }

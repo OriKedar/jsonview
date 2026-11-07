@@ -12,6 +12,8 @@ const fileInput = document.querySelector<HTMLInputElement>("#file-input")!;
 const urlBtn = document.querySelector<HTMLButtonElement>("#url-btn")!;
 const sampleBtn = document.querySelector<HTMLButtonElement>("#sample-btn")!;
 const clearBtn = document.querySelector<HTMLButtonElement>("#clear-btn")!;
+const prettifyBtn = document.querySelector<HTMLButtonElement>("#prettify-btn")!;
+const convertBtn = document.querySelector<HTMLButtonElement>("#convert-btn")!;
 const searchInput = document.querySelector<HTMLInputElement>("#search-input")!;
 const searchCount = document.querySelector<HTMLSpanElement>("#search-count")!;
 const searchPrevBtn = document.querySelector<HTMLButtonElement>("#search-prev")!;
@@ -78,14 +80,14 @@ let ready = false;
 
 const viewerPane = createInputPane(viewerEditor, {
   storageKey: STORAGE_KEY,
-  placeholder: "Paste JSON here, drop a .json file, or click Open file…",
+  placeholder: "Paste JSON or a Java Map.toString() dump here, drop a file, or click Open file…",
   initialText: localStorage.getItem(STORAGE_KEY) ?? SAMPLE,
   onChange: refresh,
 });
 
 const paneA = createInputPane(document.querySelector<HTMLDivElement>("#editor-a")!, {
   storageKey: STORAGE_KEY_A,
-  placeholder: "Paste version A, or drop a .json file…",
+  placeholder: "Paste version A (JSON or Java Map), or drop a file…",
   initialText: localStorage.getItem(STORAGE_KEY_A) ?? SAMPLE,
   onChange: refresh,
   onFocus: () => setActiveSlot("a"),
@@ -94,7 +96,7 @@ const paneA = createInputPane(document.querySelector<HTMLDivElement>("#editor-a"
 
 const paneB = createInputPane(document.querySelector<HTMLDivElement>("#editor-b")!, {
   storageKey: STORAGE_KEY_B,
-  placeholder: "Paste version B, or drop a .json file…",
+  placeholder: "Paste version B (JSON or Java Map), or drop a file…",
   initialText: localStorage.getItem(STORAGE_KEY_B) ?? SAMPLE_B,
   onChange: refresh,
   onFocus: () => setActiveSlot("b"),
@@ -122,6 +124,7 @@ function setActiveSlot(slot: Slot): void {
   activeSlot = slot;
   slots.a.col.classList.toggle("active", slot === "a");
   slots.b.col.classList.toggle("active", slot === "b");
+  if (ready) updateFormatControls();
 }
 
 function setName(slot: Slot, name: string): void {
@@ -130,6 +133,12 @@ function setName(slot: Slot, name: string): void {
 
 function activePane(): InputPane {
   return mode === "viewer" ? viewerPane : slots[activeSlot].pane;
+}
+
+function updateFormatControls(): void {
+  const state = activePane().state;
+  prettifyBtn.disabled = state.kind !== "valid";
+  convertBtn.hidden = !(state.kind === "valid" && state.format === "javaMap");
 }
 
 function setControlsEnabled(enabled: boolean): void {
@@ -187,7 +196,7 @@ function updateDots(): void {
     const { kind } = slots[slot].pane.state;
     slots[slot].dot.dataset.state = kind === "valid" ? "ok" : kind === "invalid" ? "bad" : "empty";
     slots[slot].dot.title =
-      kind === "valid" ? "Valid JSON" : kind === "invalid" ? "Invalid JSON" : "Empty";
+      kind === "valid" ? "Valid" : kind === "invalid" ? "Invalid" : "Empty";
   }
 }
 
@@ -202,8 +211,8 @@ function renderDiffMode(): void {
     const bad = (["a", "b"] as const).filter((s) => slots[s].pane.state.kind === "invalid");
     showDiffMessage(
       bad.length > 0
-        ? `Fix the JSON error in ${bad.map((s) => s.toUpperCase()).join(" and ")} to compare.`
-        : "Paste JSON into both A and B to compare.",
+        ? `Fix the error in ${bad.map((s) => s.toUpperCase()).join(" and ")} to compare.`
+        : "Paste JSON or a Java Map into both A and B to compare.",
     );
     setControlsEnabled(false);
     return;
@@ -243,6 +252,7 @@ function renderViewerMode(): void {
 
 function refresh(): void {
   if (!ready) return;
+  updateFormatControls();
   if (mode === "viewer") renderViewerMode();
   else renderDiffMode();
 }
@@ -330,6 +340,9 @@ sampleBtn.addEventListener("click", () => {
   setName("a", "Version A");
   setName("b", "Version B");
 });
+
+prettifyBtn.addEventListener("click", () => activePane().prettify());
+convertBtn.addEventListener("click", () => activePane().convertToJson());
 
 clearBtn.addEventListener("click", () => {
   if (mode === "viewer") {
