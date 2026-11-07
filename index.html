@@ -13,11 +13,13 @@
         <div class="toolbar">
           <label class="btn">
             Open file
-            <input type="file" id="file-input" accept=".json,application/json" hidden />
+            <input type="file" id="file-input" accept=".json,.txt,.log,application/json,text/plain" hidden />
           </label>
           <button id="url-btn" class="btn">Load URL</button>
           <button id="sample-btn" class="btn">Sample</button>
           <button id="clear-btn" class="btn">Clear</button>
+          <button id="prettify-btn" class="btn" type="button" disabled>Prettify</button>
+          <button id="convert-btn" class="btn" type="button" title="Lossy: string/number types are guessed" hidden>Convert to JSON</button>
           <span class="toolbar-sep"></span>
           <div class="seg" role="group" aria-label="Mode">
             <button id="mode-viewer" type="button" aria-pressed="true">Viewer</button>
